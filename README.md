@@ -2,7 +2,8 @@
 
 ## About
 
-This is the official Wails React-TS template.
+Small desktop app to parse contents of items for several cosmetics shops (currently implemented only for golden apple)
+Saves results of parsing in .xlsx file in folder with .exe of an app
 
 You can configure the project by editing `wails.json`. More information about the project settings can be found
 here: https://wails.io/docs/reference/project-config

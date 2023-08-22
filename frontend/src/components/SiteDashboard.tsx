@@ -138,6 +138,10 @@ const XlsxComponent = ({site} : innerProps) => {
             setTimeout(() => setXlsxComplete(name, failed), 500)
             console.log(failed)
         })
+        .catch((e : string) => {
+            window.alert(e)
+        })
+        // add catch error 
     }
 
     useEffect(() => {

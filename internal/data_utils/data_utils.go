@@ -2,8 +2,13 @@ package data_utils
 
 import (
 	"appleparser/internal/models"
-	"appleparser/internal/variables"
+	"regexp"
 )
+
+var unquotedKeyWordsRegexp = regexp.MustCompile(`([a-zA-Z]+):`)
+var unquotedValuesWordsRegexp = regexp.MustCompile(`:([a-zA-Z]+)`)
+var replaceKeysWithQuotes = []byte(`"$1":`)
+var replaceValuesWithQuotes = []byte(`:"$1"`)
 
 func Includes[V comparable](target V, list []V) (int, bool) {
 	for index, elem := range list {
@@ -15,8 +20,8 @@ func Includes[V comparable](target V, list []V) (int, bool) {
 }
 
 func EnquoteScriptContent(scriptcontent string) string {
-	scriptcontent = string(variables.UnquotedKeyWordsRegexp.ReplaceAll([]byte(scriptcontent), variables.ReplaceKeysWithQuotes))
-	scriptcontent = string(variables.UnquotedValuesWordsRegexp.ReplaceAll([]byte(scriptcontent), variables.ReplaceValuesWithQuotes))
+	scriptcontent = string(unquotedKeyWordsRegexp.ReplaceAll([]byte(scriptcontent), replaceKeysWithQuotes))
+	scriptcontent = string(unquotedValuesWordsRegexp.ReplaceAll([]byte(scriptcontent), replaceValuesWithQuotes))
 	return scriptcontent
 }
 
