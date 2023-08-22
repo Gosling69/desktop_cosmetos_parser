@@ -3,7 +3,6 @@ package main
 import (
 	"appleparser/internal/models"
 	"appleparser/internal/sites"
-	"appleparser/internal/variables"
 	"appleparser/internal/work_with_xlsx"
 	"fmt"
 
@@ -12,6 +11,8 @@ import (
 	"context"
 	"log"
 )
+
+var emitXlsxUpdate = "xlsxInc"
 
 // App struct
 type App struct {
@@ -30,14 +31,7 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	for _, name := range variables.SitesList {
-		site, err := sites.SiteFactory(name)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		a.siteMap[name] = site
-	}
+	a.siteMap = sites.SiteFactory()
 }
 
 func (a *App) GetAvailableSites() []string {
@@ -80,7 +74,7 @@ func (a *App) ParseLinksAndSaveToXlsx(items []*models.Item, siteName, filename s
 		return nil, fmt.Errorf("site: %v not found", siteName)
 	}
 	progressCallback := func() {
-		runtime.EventsEmit(a.ctx, variables.EmitXlsxUpdate, siteName)
+		runtime.EventsEmit(a.ctx, emitXlsxUpdate, siteName)
 	}
 	data, failed := targetSite.ParseLinks(items, progressCallback)
 	err := work_with_xlsx.Export_to_xlsx(data, filename)

@@ -17,6 +17,8 @@ var cellColor = []string{"267041"}
 
 // string(rune(65+i))
 // add count of encountered components for each row
+// fix first column for easier navigation
+// fix first row for easier navigation
 func Export_to_xlsx(items []*models.Item, filename string) error {
 
 	all_components := data_utils.Get_Components(items)

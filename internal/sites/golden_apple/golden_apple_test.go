@@ -2,12 +2,11 @@ package goldenapple
 
 import (
 	"appleparser/internal/models"
-	"appleparser/internal/variables"
 	"log"
 	"testing"
 )
 
-var apple = CreateApple(variables.AppleProps)
+var apple = CreateApple()
 
 // var test_link = "https://goldapple.ru/3571300002-get-big-lashes-volume-boost-mascara"
 var testItems = []*models.Item{

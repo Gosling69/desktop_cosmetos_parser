@@ -11,8 +11,8 @@ type Item struct {
 	Description string   `json:"Description"`
 	ImageLink   string   `json:"ImageLink"`
 	Hide        bool     `json:"Hide"`
-	Components  []string `jspn:"Components"`
-	// Add description and error fields
+	Components  []string `json:"Components"`
+	Error       string   `json:"Error"`
 }
 
 type Site interface {

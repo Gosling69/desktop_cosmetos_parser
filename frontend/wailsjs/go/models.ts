@@ -7,6 +7,8 @@ export namespace models {
 	    Description: string;
 	    ImageLink: string;
 	    Hide: boolean;
+	    Components: string[];
+	    Error: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Item(source);
@@ -20,6 +22,8 @@ export namespace models {
 	        this.Description = source["Description"];
 	        this.ImageLink = source["ImageLink"];
 	        this.Hide = source["Hide"];
+	        this.Components = source["Components"];
+	        this.Error = source["Error"];
 	    }
 	}
 

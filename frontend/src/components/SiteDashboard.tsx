@@ -57,7 +57,6 @@ const SearchInput = ({site} : innerProps) => {
         fetchNumPages(query, site.name)
     }
     const getItems = async () => {
-        // console.log(numItemsToFetch)
         if (query.length && numItemsToFetch) fetchItems(query, numItemsToFetch, site.name)
     }
     if (queryLoading) {

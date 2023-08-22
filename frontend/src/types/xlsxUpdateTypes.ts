@@ -22,7 +22,6 @@ interface incrementProgress {
     siteName : string
 }
 
-
 export interface XlsxState {
     loading : boolean
     total : number

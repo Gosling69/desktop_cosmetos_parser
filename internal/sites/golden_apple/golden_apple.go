@@ -32,9 +32,29 @@ type parsedScriptData struct {
 	Content  string `json:"content"`
 }
 
-func CreateApple(props models.SiteProps) models.Site {
+var appleProps = models.SiteProps{
+	BaseUrl:                  "https://goldapple.ru/catalogsearch/result?q=",
+	PageWord:                 "p",
+	ItemsPerPage:             20,
+	NameStartWord:            `"productDescription":[`,
+	NameEndWord:              `]},`,
+	ContentsStartWord:        `"text":"состав"`,
+	ContentsEndWord:          `"},{"`,
+	ContentsTargetTag:        "script",
+	ProductNameTarget:        "span.catalog-product-name-span",
+	ProductLinkTarget:        "a.product-item-link",
+	ProductDescriptionTarget: ".product-item-category-title",
+	ProductBrandTarget:       ".catalog-brand-name-span",
+	ProductImageTarget:       ".product-item-photo__img.js-lazy-load-picture",
+	MaxRequests:              3,
+	SemaphoreSleepSeconds:    12,
+	NumPagesTarget:           ".toolbar-number",
+	ProductContainerClass:    ".products.list.items.product-items",
+}
+
+func CreateApple() models.Site {
 	return &goldenApple{
-		SiteProps: props,
+		SiteProps: appleProps,
 	}
 }
 
@@ -77,6 +97,7 @@ func (s *goldenApple) ExtractUrls(query string, numItems int) ([]*models.Item, e
 		go func(p int) {
 			defer wg.Done()
 			defer sem.Release(p == num_pages || num_pages <= s.MaxRequests)
+
 			new_url := endpoint + fmt.Sprintf("&%v=%d", s.PageWord, p)
 			response, err := http.Get(new_url)
 			if err != nil {
@@ -107,25 +128,23 @@ func (s *goldenApple) ParseLinks(items []*models.Item, progressCallback func()) 
 	for index, item := range items {
 		wg.Add(1)
 		sem.Acquire()
-		go func(url string, index int) {
+		go func(item *models.Item, index int) {
 			defer sem.Release(index == len(items)-1)
 			defer wg.Done()
-			result, name, err := s.extractContents(url)
-			item := &models.Item{
-				Url:        url,
-				Name:       name,
-				Components: result,
-			}
+			components, name, err := s.extractContents(item.Url)
 			if err != nil {
+				item.Error = err.Error()
 				failed_urls.Append(item)
 			} else {
+				item.Components = components
+				item.Name = name
 				res_list.Append(item)
 			}
 			if index == len(items)-1 {
 				done <- true
 			}
 			progressCallback()
-		}(item.Url, index)
+		}(item, index)
 	}
 	<-done
 	wg.Wait()
@@ -229,6 +248,7 @@ func (s *goldenApple) extractComponents(htmlContent string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// REDO, incorrect strings split, filter for empty stuff
 	words := strings.Split(contentsJson.Content, ", ")
 	for index, word := range words {
 		words[index], _ = strconv.Unquote(`"` + strings.ToLower(word) + `"`)
