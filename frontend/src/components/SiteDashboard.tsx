@@ -5,6 +5,8 @@ import { Site } from "../types/sitesTypes"
 import { models } from "../../wailsjs/go/models"
 import React, { useEffect, useState } from "react"
 import {EventsOn} from "../../wailsjs/runtime/runtime"
+import { Row, Col, List, Avatar, Checkbox, Space, Input, InputNumber, Button } from "antd"
+import { CheckboxChangeEvent } from "antd/es/checkbox"
 
 type dashProps = {
     siteName :string
@@ -17,7 +19,7 @@ type itemProps = {
     item : models.Item
 }
 
-const defaultInfo = "Please enter your query below 👇"
+const defaultInfo = "Please enter your query above 👇"
 
 const SearchInput = ({site} : innerProps) => {
     const {clearQuery, fetchNumPages, setQuery, fetchItems} = useActions()
@@ -65,15 +67,15 @@ const SearchInput = ({site} : innerProps) => {
 
     return (
         <>
-            <div>{info}</div>
-            <button  onClick={clearInput}>Clear</button>
-            <input value={query} onChange={onInputChange} ></input>
-            <button  onClick={getNumPages}>Search...</button>
+            <Space.Compact style={{ width: '100%' }}>
+                <Button type="primary" onClick={clearInput}>Clear</Button>
+                <Input.Search  value={query} onChange={onInputChange} placeholder={defaultInfo} onSearch={getNumPages} style={{ width: 200 }} />
+            </Space.Compact>
             {numItems ? 
-                <>
-                <button disabled={itemsLoading} onClick={getItems}>Get Items</button>
-                <input disabled={itemsLoading} max={numItems} min={1} type="number" onChange={(e) => setNumItemsToFetch(Number(e.target.value))} value={numItemsToFetch} />
-                </>
+                <Space.Compact style={{ width: '100%', marginTop:"16px" }}>
+                    <InputNumber max={numItems} min={1}  onChange={(e) => setNumItemsToFetch(e!)} value={numItemsToFetch}  disabled={itemsLoading}/>
+                    <Button type="primary" disabled={itemsLoading} onClick={getItems}>Get Items</Button>
+                </Space.Compact>
                 :
                 <></>
             }
@@ -81,21 +83,28 @@ const SearchInput = ({site} : innerProps) => {
     )
 }
 
+
+
 const Item = ({item, siteName} : itemProps) => {
     const {xlsxStatus} = useTypedSelector(state => state[siteName])
     const {toggleHideItem} = useActions()
-    const toggleHide = (e : React.ChangeEvent<HTMLInputElement>) => {
+    const toggleHide = () => {
         toggleHideItem(item.Url, siteName)
     }
 
     const failed = xlsxStatus.failed.find(fail => fail.Url === item.Url) 
 
     return (
-        <div style={{textDecoration : failed ? " line-through" : ""}} >
-            <input disabled={xlsxStatus.loading} checked={!item.Hide} onChange={toggleHide} type="checkbox"></input>
-            {item.Name}
-            {/* <img width={100} height={100} src={item.ImageLink} ></img> */}
-        </div>
+        <List.Item style={{textDecoration : failed ? " line-through" : ""}} >
+            <Checkbox style={{marginRight:"20px"}} disabled={xlsxStatus.loading} checked={!item.Hide} onChange={toggleHide}/>
+            {/* <input disabled={xlsxStatus.loading} checked={!item.Hide} onChange={toggleHide} type="checkbox"></input> */}
+            <List.Item.Meta
+                style={{color:"white !important"}}
+                avatar={<Avatar size="large" shape="square" src={item.ImageLink} />}
+                title={<a href={item.Url}>{`${item.Brand} ${item.Name}`}</a>}
+                description={item.Description}
+            />
+        </List.Item>
     )
 
 }
@@ -109,26 +118,29 @@ const ItemsList = ({site} : innerProps) => {
     if(error) {
         return <h1>{error}</h1>
     }
+    if(!items.length) {
+        return (
+            <></>
+        )
+    }
 
     return (
-        <div>
-            {items.map(item => 
-                <Item key={item.Url} siteName={site.name} item={item} />
+        <List
+            style={{overflowY: "auto", height: "570px"}}
+            dataSource={items}
+            renderItem={(item) => ( 
+                <Item key={item.Url} item={item} siteName={site.name}/>
             )}
-            {items.length ? 
-                <XlsxComponent site={site}/>
-                :
-                <></>
-            }
-
-        </div>
+        >
+        </List>
+    
     )
 }
 
 const XlsxComponent = ({site} : innerProps) => {
     const {items, xlsxStatus, name} = site
     const [fileName, setFilename] = useState("test")
-    const {setXlsxLoading, setXlsxComplete, incrementProgress} = useActions()
+    const {setXlsxLoading, setXlsxComplete, setXlsxError, incrementProgress} = useActions()
 
     const onButtonClick = (e : React.MouseEvent<HTMLButtonElement>) => {
         const itemsToFetch = items.data.filter(item => !item.Hide)
@@ -139,9 +151,8 @@ const XlsxComponent = ({site} : innerProps) => {
             console.log(failed)
         })
         .catch((e : string) => {
-            window.alert(e)
+            setXlsxError(name, e)
         })
-        // add catch error 
     }
 
     useEffect(() => {
@@ -155,10 +166,17 @@ const XlsxComponent = ({site} : innerProps) => {
     if (xlsxStatus.loading) {
         return <h1>Loading...{xlsxStatus.completed}/{xlsxStatus.total}</h1>
     }
+    if(!items.data.length) {
+        return <></>
+    }
     return (
         <>
-        <input value={fileName} onChange={(e) => setFilename(e.target.value)} type="text" />
-        <button disabled={xlsxStatus.loading || !fileName.length} onClick={onButtonClick} >Get XLSX</button>
+        {xlsxStatus.error}
+        <Space.Compact style={{ width: '100%' }}>
+            <Input value={fileName} onChange={(e) => setFilename(e.target.value)} type="text" />
+            <Button type="primary" disabled={xlsxStatus.loading || !fileName.length} onClick={onButtonClick} >Get XLSX</Button>
+        </Space.Compact>
+      
         </>
     )
 }
@@ -172,10 +190,21 @@ const SiteDashboard = ({siteName} : dashProps) => {
     }
 
     return (
-        <>
-            <SearchInput site={site}/>
-            <ItemsList site={site}/>
-        </>
+        <div style={{marginLeft : "20px"}}>
+        <Row  justify={"space-between"} style={{marginTop: "4vh", marginRight: "10px"}} >
+            <Col >
+                <SearchInput site={site}/>
+            </Col>
+            <Col >
+                <XlsxComponent site={site}/>
+            </Col>
+        </Row>
+        <Row style={{marginTop: "4vh"}}>
+            <Col span={24} >
+                <ItemsList site={site}/>
+            </Col>
+        </Row>
+        </div>
     )
 }
 

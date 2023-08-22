@@ -19,11 +19,15 @@ var testItems = []*models.Item{
 		Url:  "https://goldapple.ru/19000149484-salt-spray",
 	},
 	{
-		Name: "Test1",
+		Name: "Test3",
 		Url:  "https://goldapple.ru/19000019730-for-me-223-bring-me-to-the-beach",
 	},
+	{
+		Name: "Test4",
+		Url:  "https://goldapple.ru/11910-19000041617-pro-icon-look-satin-face-powder",
+	},
 }
-var test_query = "солевой спрей"
+var test_query = "пудра"
 
 // func TestGetData(t *testing.T) {
 // 	response, err := http.Get("https://goldapple.ru/19000019730-for-me-223-bring-me-to-the-beach")
@@ -90,28 +94,28 @@ var test_query = "солевой спрей"
 // 	log.Println(num)
 // }
 
-func TestExtractUrls(t *testing.T) {
-	items, err := apple.ExtractUrls(test_query, 5)
+// func TestExtractUrls(t *testing.T) {
+// 	items, err := apple.ExtractUrls(test_query, 5)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, item := range items {
-		log.Printf("%v - %v\n %v\n", item.Brand, item.Name, item.Description)
-	}
-}
-
-// func TestParseLinks(t *testing.T) {
-
-// 	items, _ := apple.ExtractUrls(test_query, 20)
-// 	result, failed := apple.ParseLinks(items)
-// 	for _, fail := range failed {
-// 		log.Println(fail.Url)
+// 	if err != nil {
+// 		t.Fatal(err)
 // 	}
 
-// 	for _, item := range result {
-// 		log.Printf("%v - %v\n", item.Url, item.Components)
+// 	for _, item := range items {
+// 		log.Printf("%v - %v\n %v\n", item.Brand, item.Name, item.Description)
 // 	}
-
 // }
+
+func TestParseLinks(t *testing.T) {
+
+	// items, _ := apple.ExtractUrls(test_query, 20)
+	result, _ := apple.ParseLinks(testItems, func() {})
+	// for _, fail := range failed {
+	// 	log.Println(fail.Url)
+	// }
+
+	for _, item := range result {
+		log.Printf("%v - %v\n", item.Url, item.Components)
+	}
+
+}

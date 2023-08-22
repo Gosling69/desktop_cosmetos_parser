@@ -3,6 +3,8 @@ package data_utils
 import (
 	"appleparser/internal/models"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 var unquotedKeyWordsRegexp = regexp.MustCompile(`([a-zA-Z]+):`)
@@ -39,4 +41,20 @@ func Get_Components(data []*models.Item) []string {
 		comp_list = append(comp_list, key)
 	}
 	return comp_list
+}
+
+func SplitContentsString(stringOfContents string) ([]string, error) {
+	// log.Println(stringOfContents)
+	words := strings.Split(stringOfContents, ", ")
+	for index, word := range words {
+		words[index], _ = strconv.Unquote(`"` + strings.ToLower(word) + `"`)
+		word = words[index]
+		if strings.Contains(word, "may contain") {
+			words = words[:index]
+			break
+		}
+	}
+	words[len(words)-1] = strings.ReplaceAll(words[len(words)-1], ".", "")
+	return words, nil
+
 }

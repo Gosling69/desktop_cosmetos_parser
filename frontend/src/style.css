@@ -1,25 +1,45 @@
+
 html {
-    background-color: rgba(27, 38, 54, 1);
-    text-align: center;
-    color: white;
     height: 100%;
-    min-width: 100% !important;
-    overflow-x: hidden;
-
 }
-
 body {
     margin: 0;
-    background-color: inherit !important;
-    color: white !important;
+    background-color: #2F4B45;
+    color: #BFDFD8 !important;
+    min-height: 100%;
+    overflow-x: hidden;
     /* height: 100vh; */
     font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
     "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
 }
-input {
-    background-color: black;
+body > #root > div {
+    height: 100vh;
 }
+.ant-list-item-meta-title > a {
+    color : #BFDFD8 !important
+
+}
+.ant-list-item-meta-description {
+    color : #BFDFD8 !important
+}
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #122D28;
+    border-radius: 4px;
+
+    /* box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3); */
+}
+::-webkit-scrollbar-track {
+    border-radius: 4px;
+    /* background-color: #122D28; */
+}
+/* input {
+    background-color: black;
+    color: white;
+} */
 @font-face {
     font-family: "Nunito";
     font-style: normal;
@@ -27,10 +47,8 @@ input {
     src: local(""),
     url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
 }
-
-#app {
-    height: 100vh;
-    /* text-align: center; */
+.sitescol{
+    background-color: #122D28 !important;
 }
 button {
     color: inherit !important;

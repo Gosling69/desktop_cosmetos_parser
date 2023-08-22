@@ -19,3 +19,8 @@ export const setXlsxComplete = (siteName : string, failed : models.Item[]) => {
         dispatch({type : XlsxActionTypes.SET_COMPLETE, siteName, payload: failed})
     }
 }
+export const setXlsxError = (siteName : string, error : any) => {
+    return (dispatch : Dispatch<XlsxAction>) => {
+        dispatch({type : XlsxActionTypes.SET_ERROR, siteName, payload: error})
+    }
+}

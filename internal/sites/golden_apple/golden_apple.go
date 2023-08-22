@@ -3,6 +3,7 @@ package goldenapple
 import (
 	structs "appleparser/internal/concurrency_structs"
 	"appleparser/internal/data_utils"
+	"appleparser/internal/misc"
 	"appleparser/internal/models"
 	"bytes"
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -36,21 +36,18 @@ var appleProps = models.SiteProps{
 	BaseUrl:                  "https://goldapple.ru/catalogsearch/result?q=",
 	PageWord:                 "p",
 	ItemsPerPage:             20,
-	NameStartWord:            `"productDescription":[`,
-	NameEndWord:              `]},`,
-	ContentsStartWord:        `"text":"состав"`,
-	ContentsEndWord:          `"},{"`,
-	ContentsTargetTag:        "script",
 	ProductNameTarget:        "span.catalog-product-name-span",
 	ProductLinkTarget:        "a.product-item-link",
 	ProductDescriptionTarget: ".product-item-category-title",
 	ProductBrandTarget:       ".catalog-brand-name-span",
 	ProductImageTarget:       ".product-item-photo__img.js-lazy-load-picture",
+	ProductContainerClass:    ".products.list.items.product-items",
 	MaxRequests:              3,
 	SemaphoreSleepSeconds:    12,
 	NumPagesTarget:           ".toolbar-number",
-	ProductContainerClass:    ".products.list.items.product-items",
 }
+
+// return errors more correctly
 
 func CreateApple() models.Site {
 	return &goldenApple{
@@ -61,17 +58,13 @@ func CreateApple() models.Site {
 func (s *goldenApple) CalculateNumItems(query string) (int, error) {
 	endpoint := s.BaseUrl + url.QueryEscape(query)
 	log.Println(endpoint)
-	response, err := http.Get(endpoint)
+	response, err := misc.GetRequest(endpoint)
 	if err != nil {
-		log.Println(err)
-		return 0, errors.New("failed to get item")
+		return 0, err
 	}
-	if response.StatusCode != http.StatusOK {
-		log.Println("404 SOOQA")
-		return 0, fmt.Errorf("we were banned")
-	}
-	defer response.Body.Close()
-	doc, err := goquery.NewDocumentFromReader(response.Body)
+	defer response.Close()
+
+	doc, err := goquery.NewDocumentFromReader(response)
 	if err != nil {
 		return 0, errors.New("failed to parse item")
 	}
@@ -82,6 +75,7 @@ func (s *goldenApple) CalculateNumItems(query string) (int, error) {
 	}
 	return total_count, nil
 }
+
 func (s *goldenApple) ExtractUrls(query string, numItems int) ([]*models.Item, error) {
 	endpoint := s.BaseUrl + url.QueryEscape(query)
 	result := structs.CreateList[*models.Item]()
@@ -91,21 +85,21 @@ func (s *goldenApple) ExtractUrls(query string, numItems int) ([]*models.Item, e
 	if num_pages == 0 || numItems/s.ItemsPerPage != 0 && numItems%s.ItemsPerPage != 0 {
 		num_pages++
 	}
+	var numSuccessful int
 	for p := 1; p <= num_pages; p++ {
 		wg.Add(1)
 		sem.Acquire()
 		go func(p int) {
 			defer wg.Done()
 			defer sem.Release(p == num_pages || num_pages <= s.MaxRequests)
-
 			new_url := endpoint + fmt.Sprintf("&%v=%d", s.PageWord, p)
-			response, err := http.Get(new_url)
+			response, err := misc.GetRequest(new_url)
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			defer response.Body.Close()
-			doc, err := goquery.NewDocumentFromReader(response.Body)
+			defer response.Close()
+			doc, err := goquery.NewDocumentFromReader(response)
 			if err != nil {
 				log.Println(err)
 				return
@@ -113,16 +107,20 @@ func (s *goldenApple) ExtractUrls(query string, numItems int) ([]*models.Item, e
 			start_point := doc.Find(s.ProductContainerClass).Children()
 			resp := s.traverseItemList(start_point)
 			result.Append(resp...)
+			numSuccessful += len(resp)
 		}(p)
 	}
 	wg.Wait()
-	return result.GetValue()[:numItems], nil
+	if numSuccessful < numItems {
+		return result.GetValue()[:numSuccessful], nil
+	} else {
+		return result.GetValue()[:numItems], nil
+	}
 }
 
 func (s *goldenApple) ParseLinks(items []*models.Item, progressCallback func()) ([]*models.Item, []*models.Item) {
 	res_list := structs.CreateList[*models.Item]()
 	failed_urls := structs.CreateList[*models.Item]()
-	done := make(chan bool)
 	var wg sync.WaitGroup
 	sem := structs.CreateSemaphore(s.MaxRequests, s.SemaphoreSleepSeconds)
 	for index, item := range items {
@@ -131,22 +129,17 @@ func (s *goldenApple) ParseLinks(items []*models.Item, progressCallback func()) 
 		go func(item *models.Item, index int) {
 			defer sem.Release(index == len(items)-1)
 			defer wg.Done()
-			components, name, err := s.extractContents(item.Url)
+			components, err := s.extractComponents(item.Url)
 			if err != nil {
 				item.Error = err.Error()
 				failed_urls.Append(item)
 			} else {
 				item.Components = components
-				item.Name = name
 				res_list.Append(item)
-			}
-			if index == len(items)-1 {
-				done <- true
 			}
 			progressCallback()
 		}(item, index)
 	}
-	<-done
 	wg.Wait()
 	return res_list.GetValue(), failed_urls.GetValue()
 }
@@ -172,92 +165,86 @@ func (s *goldenApple) traverseItemList(start *goquery.Selection) []*models.Item 
 		entry.Brand = curr_point.Find(s.ProductBrandTarget).Text()
 		entry.ImageLink, _ = curr_point.Find(s.ProductImageTarget).Attr("data-src")
 		result = append(result, entry)
-
 	}
 	return result
 }
-func (s *goldenApple) extractContents(url string) ([]string, string, error) {
-	result := []string{}
-	var name string
-	response, err := http.Get(url)
+
+func (s *goldenApple) extractComponents(url string) ([]string, error) {
+	response, err := misc.GetRequest(url)
 	if err != nil {
 		log.Println(err)
-		return result, "", errors.New("failed to get item")
+		return nil, errors.New("failed to get item")
 	}
-	defer response.Body.Close()
-	buf, err := io.ReadAll(response.Body)
+	defer response.Close()
+
+	buf, err := io.ReadAll(response)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	r := bytes.NewReader(buf)
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
-		return result, "", errors.New("failed to parse item")
+		return nil, errors.New("failed to parse item")
 	}
+	var stringOfContents string
+
+	for _, function := range parseFuncs {
+		res, err := function(doc)
+		if err == nil {
+			stringOfContents = res
+		}
+	}
+	words, err := data_utils.SplitContentsString(stringOfContents)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't split string")
+	}
+	return words, nil
+}
+
+func findContentsInSEO(doc *goquery.Document) (string, error) {
+
+	contentsTargetTag := "script"
+	contentsStartWord := `"text":"состав"`
+	contentsEndWord := `"},{"`
 	var script_content string
-	doc.Find(s.ContentsTargetTag).Each(func(i int, s *goquery.Selection) {
+
+	doc.Find(contentsTargetTag).Each(func(i int, s *goquery.Selection) {
 		inner_HTML := s.Text()
 		if len(inner_HTML) > len(script_content) {
 			script_content = inner_HTML
 		}
 	})
+
 	script_content = data_utils.EnquoteScriptContent(script_content)
-	name, err = s.extractName(script_content)
-	if err != nil {
-		log.Println(err, url)
-		// misc.Save_failed_html(url, buf)
-		return nil, "", err
-	}
-	result, err = s.extractComponents(script_content)
-	if err != nil {
-		log.Println(err, url)
-		// misc.Save_failed_html(url, buf)
-		return nil, name, err
-	}
-	return result, name, nil
-}
-
-func (s *goldenApple) extractName(htmlContent string) (string, error) {
-	startIndex := strings.Index(htmlContent, s.NameStartWord)
-	endIndex := strings.Index(htmlContent[startIndex+len(s.NameStartWord):], s.NameEndWord)
-	sliceForJson := htmlContent[startIndex+len(s.NameStartWord) : startIndex+len(s.NameStartWord)+endIndex+len(s.NameEndWord)-1]
-	nameJson := &parsedScriptData{}
-	err := json.Unmarshal([]byte(sliceForJson), nameJson)
-	if err != nil {
-		return "", err
-	}
-	return nameJson.Title, nil
-}
-
-func (s *goldenApple) extractComponents(htmlContent string) ([]string, error) {
-	startIndex := strings.Index(htmlContent, s.ContentsStartWord)
+	startIndex := strings.Index(script_content, contentsStartWord)
 	if startIndex == -1 {
-		return []string{}, fmt.Errorf("components not found")
+		return "", fmt.Errorf("components not found")
 	}
 
 	for i := startIndex; i > startIndex-1000; i-- {
-		if htmlContent[i] == '{' {
+		if script_content[i] == '{' {
 			startIndex = i
 			break
 		}
 	}
-	endIndex := strings.Index(htmlContent[startIndex:], s.ContentsEndWord)
-	sliceForJson := htmlContent[startIndex : startIndex+endIndex+2]
+	endIndex := strings.Index(script_content[startIndex:], contentsEndWord)
+	sliceForJson := script_content[startIndex : startIndex+endIndex+2]
 	contentsJson := &parsedScriptData{}
 	err := json.Unmarshal([]byte(sliceForJson), contentsJson)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	// REDO, incorrect strings split, filter for empty stuff
-	words := strings.Split(contentsJson.Content, ", ")
-	for index, word := range words {
-		words[index], _ = strconv.Unquote(`"` + strings.ToLower(word) + `"`)
-		word = words[index]
-		if strings.Contains(word, "may contain") {
-			words = words[:index]
-			break
-		}
-	}
-	words[len(words)-1] = strings.ReplaceAll(words[len(words)-1], ".", "")
-	return words, nil
+	return contentsJson.Content, nil
 }
+
+func findContentsInPage(doc *goquery.Document) (string, error) {
+	startTarget := "article.info-tabs__item-content_contents"
+	result := doc.Find(startTarget).Children().First().Children().First().Text()
+	if len(result) > 0 {
+		return result, nil
+	} else {
+		return "", fmt.Errorf("couldn't find contents in page")
+	}
+}
+
+var parseFuncs = []func(*goquery.Document) (string, error){findContentsInSEO, findContentsInPage}

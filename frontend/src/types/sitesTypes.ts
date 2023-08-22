@@ -1,8 +1,6 @@
 import { ItemAction, ItemState } from "./itemsTypes"
 import { QueryAction, QueryState } from "./queryTypes"
 import { XlsxAction, XlsxState } from "./xlsxUpdateTypes"
-import { models } from "../../wailsjs/go/models"
-
 
 export enum SitesActionTypes {
     ADD_SITE = "ADD_SITE"
@@ -35,6 +33,7 @@ export class EmptySite implements Site {
     }
     xlsxStatus: XlsxState = {
         loading: false,
+        error : "",
         completed: 0,
         total : 0,
         failed : []

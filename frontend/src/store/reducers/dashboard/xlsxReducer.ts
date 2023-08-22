@@ -18,6 +18,9 @@ export const xlsxReducer = (state = initialState, action : XlsxAction) : XlsxSta
         case XlsxActionTypes.INCREMENT_PROGRESS: {
             return {...state, completed: state.completed + 1}
         }
+        case XlsxActionTypes.SET_ERROR: {
+            return {...state, error: action.payload}
+        }
         default: {
             return {...state}
         }

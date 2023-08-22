@@ -21,6 +21,7 @@ export const sitesReducer = (state = initialState, action : SitesAction) : SiteS
         case XlsxActionTypes.SET_LOADING:
         case XlsxActionTypes.INCREMENT_PROGRESS:
         case XlsxActionTypes.SET_COMPLETE:
+        case XlsxActionTypes.SET_ERROR:
         case ItemActionTypes.TOGGLE_HIDE_ITEM:
         case ItemActionTypes.FETCH_ITEMS:
         case ItemActionTypes.FETCH_ITEMS_SUCCESS:
