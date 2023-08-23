@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Button, Menu } from 'antd';
+import { SiteState } from './types/sitesTypes';
   
 type MenuItem = Required<MenuProps>['items'][number];
   
@@ -35,10 +36,16 @@ function getItem(
 
 const icons = [<PieChartOutlined />, <DesktopOutlined />, <ContainerOutlined />]
 
+
+// REDO make Dashboard Component fit all width of remained space
+// REDO optimize sites so it wont rerender every time state changes
+// add compare function to useTypedSelector
+
+
 function App() {
  
     const {addSite} = useActions()
-    const sites = useTypedSelector(state => state)
+    const sites = useTypedSelector(state => state.sites, (newState, oldState ) : boolean => newState.length === oldState.length)
     const [currentSite, setCurrentSite] = useState("")
     const [collapsed, setCollapsed] = useState(false);
 
@@ -49,7 +56,7 @@ function App() {
     useEffect(() => {
         GetAvailableSites()
         .then((data) => {
-            data.forEach((site,index) => {
+            data.forEach((site, index) => {
                 addSite(site)
                 if(index === 0 ){
                     setCurrentSite(site)
@@ -58,6 +65,7 @@ function App() {
         })
     },[])
 
+   
     return (
         <Row >
             <Col style={{width: "fit-content", textAlign: "center", padding:0}} className='sitescol' >
@@ -75,8 +83,8 @@ function App() {
                     defaultActiveFirst
                     onSelect={(e) => setCurrentSite(e.key)}
                     items={
-                        Object.keys(sites).map((site) =>
-                            getItem(site, site, icons[Math.floor(Math.random() * icons.length)])
+                        sites.map((site) =>
+                            getItem(site.name, site.name, icons[Math.floor(Math.random() * icons.length)])
                         )
                     }
                 />

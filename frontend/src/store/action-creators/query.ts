@@ -2,6 +2,13 @@ import { QueryAction, QueryActionTypes  } from "../../types/queryTypes"
 import { Dispatch } from "@reduxjs/toolkit"
 import { GetNumItems } from "../../../wailsjs/go/main/App"
 
+export const addQueryForSite = (siteName : string) => {
+    return (dispatch : Dispatch<QueryAction>) => {
+        dispatch({type : QueryActionTypes.ADD_QUERY_FOR_SITE, siteName})
+    }
+}
+
+
 export const setQuery = (newQuery : string, siteName : string) => {
     return (dispatch : Dispatch<QueryAction>) => {
         dispatch({type : QueryActionTypes.UPDATE_QUERY, payload: newQuery, siteName})

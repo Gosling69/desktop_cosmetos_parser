@@ -1,18 +1,17 @@
 import { useTypedSelector } from "../hooks/useTypedSelector"
 import {useActions} from "../hooks/useActions"
 import {ParseLinksAndSaveToXlsx} from "../../wailsjs/go/main/App"
-import { Site } from "../types/sitesTypes"
 import { models } from "../../wailsjs/go/models"
 import React, { useEffect, useState } from "react"
 import {EventsOn} from "../../wailsjs/runtime/runtime"
 import { Row, Col, List, Avatar, Checkbox, Space, Input, InputNumber, Button } from "antd"
 import { CheckboxChangeEvent } from "antd/es/checkbox"
 
+
+//add popup message showing errors if they happen
+
 type dashProps = {
     siteName :string
-}
-type innerProps = {
-    site : Site
 }
 type itemProps = {
     siteName : string,
@@ -21,10 +20,10 @@ type itemProps = {
 
 const defaultInfo = "Please enter your query above 👇"
 
-const SearchInput = ({site} : innerProps) => {
+const SearchInput = ({siteName} : dashProps) => {
     const {clearQuery, fetchNumPages, setQuery, fetchItems} = useActions()
-    const {request: query, numItems, loading : queryLoading, error } = site.query
-    const {loading : itemsLoading} = site.items
+    const {request: query, numItems, loading : queryLoading, error } = useTypedSelector(state => state.query[siteName])
+    const {loading : itemsLoading} = useTypedSelector(state => state.items[siteName])
     const [numItemsToFetch, setNumItemsToFetch] = useState(numItems)
     const [info, setInfo] = useState(defaultInfo)
 
@@ -46,20 +45,20 @@ const SearchInput = ({site} : innerProps) => {
     },[error])
 
     const onInputChange = (e : React.ChangeEvent<HTMLInputElement>) => {
-        setQuery(e.target.value, site.name)
+        setQuery(e.target.value, siteName)
     }
     const clearInput = () => {
-        clearQuery(site.name)
+        clearQuery(siteName)
     }
     const getNumPages = async () => {
         if (!query.length) {
             window.alert("Empty query")
             return
         }
-        fetchNumPages(query, site.name)
+        fetchNumPages(query, siteName)
     }
     const getItems = async () => {
-        if (query.length && numItemsToFetch) fetchItems(query, numItemsToFetch, site.name)
+        if (query.length && numItemsToFetch) fetchItems(query, numItemsToFetch, siteName)
     }
     if (queryLoading) {
         return <h1>Loading...</h1>
@@ -86,20 +85,18 @@ const SearchInput = ({site} : innerProps) => {
 
 
 const Item = ({item, siteName} : itemProps) => {
-    const {xlsxStatus} = useTypedSelector(state => state[siteName])
+    const {failed : failedItems, loading} = useTypedSelector(state => state.xlsxStatus[siteName])
     const {toggleHideItem} = useActions()
     const toggleHide = () => {
         toggleHideItem(item.Url, siteName)
     }
 
-    const failed = xlsxStatus.failed.find(fail => fail.Url === item.Url) 
+    const failed = failedItems.find(fail => fail.Url === item.Url) 
 
     return (
         <List.Item style={{textDecoration : failed ? " line-through" : ""}} >
-            <Checkbox style={{marginRight:"20px"}} disabled={xlsxStatus.loading} checked={!item.Hide} onChange={toggleHide}/>
-            {/* <input disabled={xlsxStatus.loading} checked={!item.Hide} onChange={toggleHide} type="checkbox"></input> */}
+            <Checkbox style={{marginRight:"20px"}} disabled={loading} checked={!item.Hide} onChange={toggleHide}/>
             <List.Item.Meta
-                style={{color:"white !important"}}
                 avatar={<Avatar size="large" shape="square" src={item.ImageLink} />}
                 title={<a href={item.Url}>{`${item.Brand} ${item.Name}`}</a>}
                 description={item.Description}
@@ -110,15 +107,15 @@ const Item = ({item, siteName} : itemProps) => {
 }
 
 
-const ItemsList = ({site} : innerProps) => {
-    const {data: items, loading, error} = site.items
+const ItemsList = ({siteName} : dashProps) => {
+    const {data, loading, error} = useTypedSelector(state => state.items[siteName])
     if (loading) {
         return <h1>Loading...</h1>
     } 
     if(error) {
         return <h1>{error}</h1>
     }
-    if(!items.length) {
+    if(!data.length) {
         return (
             <></>
         )
@@ -127,9 +124,9 @@ const ItemsList = ({site} : innerProps) => {
     return (
         <List
             style={{overflowY: "auto", height: "570px"}}
-            dataSource={items}
+            dataSource={data}
             renderItem={(item) => ( 
-                <Item key={item.Url} item={item} siteName={site.name}/>
+                <Item key={item.Url} item={item} siteName={siteName}/>
             )}
         >
         </List>
@@ -137,21 +134,23 @@ const ItemsList = ({site} : innerProps) => {
     )
 }
 
-const XlsxComponent = ({site} : innerProps) => {
-    const {items, xlsxStatus, name} = site
+const XlsxComponent = ({siteName} : dashProps) => {
+    // const {items, xlsxStatus, name} = site
+    const {data} = useTypedSelector(state => state.items[siteName])
+    const {loading, completed, total, error} = useTypedSelector(state => state.xlsxStatus[siteName])
     const [fileName, setFilename] = useState("test")
     const {setXlsxLoading, setXlsxComplete, setXlsxError, incrementProgress} = useActions()
 
     const onButtonClick = (e : React.MouseEvent<HTMLButtonElement>) => {
-        const itemsToFetch = items.data.filter(item => !item.Hide)
-        setXlsxLoading(name, itemsToFetch.length)
-        ParseLinksAndSaveToXlsx(itemsToFetch, name, fileName)
+        const itemsToFetch = data.filter(item => !item.Hide)
+        setXlsxLoading(siteName, itemsToFetch.length)
+        ParseLinksAndSaveToXlsx(itemsToFetch, siteName, fileName)
         .then((failed : models.Item[]) => {
-            setTimeout(() => setXlsxComplete(name, failed), 500)
+            setTimeout(() => setXlsxComplete(siteName, failed), 500)
             console.log(failed)
         })
         .catch((e : string) => {
-            setXlsxError(name, e)
+            setXlsxError(siteName, e)
         })
     }
 
@@ -163,18 +162,18 @@ const XlsxComponent = ({site} : innerProps) => {
     },[])
 
 
-    if (xlsxStatus.loading) {
-        return <h1>Loading...{xlsxStatus.completed}/{xlsxStatus.total}</h1>
+    if (loading) {
+        return <h1>Loading...{completed}/{total}</h1>
     }
-    if(!items.data.length) {
+    if(!data.length) {
         return <></>
     }
     return (
         <>
-        {xlsxStatus.error}
+        {error}
         <Space.Compact style={{ width: '100%' }}>
             <Input value={fileName} onChange={(e) => setFilename(e.target.value)} type="text" />
-            <Button type="primary" disabled={xlsxStatus.loading || !fileName.length} onClick={onButtonClick} >Get XLSX</Button>
+            <Button type="primary" disabled={loading || !fileName.length} onClick={onButtonClick} >Get XLSX</Button>
         </Space.Compact>
       
         </>
@@ -184,7 +183,7 @@ const XlsxComponent = ({site} : innerProps) => {
 
 
 const SiteDashboard = ({siteName} : dashProps) => {
-    const site = useTypedSelector(state => state[siteName])
+    const site = useTypedSelector(state => state.sites.find(site => site.name === siteName))
     if (!site) {
         return <h1>Site not found, Error occured</h1>
     }
@@ -193,15 +192,15 @@ const SiteDashboard = ({siteName} : dashProps) => {
         <div style={{marginLeft : "20px"}}>
         <Row  justify={"space-between"} style={{marginTop: "4vh", marginRight: "10px"}} >
             <Col >
-                <SearchInput site={site}/>
+                <SearchInput siteName={siteName}/>
             </Col>
             <Col >
-                <XlsxComponent site={site}/>
+                <XlsxComponent siteName={siteName}/>
             </Col>
         </Row>
         <Row style={{marginTop: "4vh"}}>
             <Col span={24} >
-                <ItemsList site={site}/>
+                <ItemsList siteName={siteName}/>
             </Col>
         </Row>
         </div>

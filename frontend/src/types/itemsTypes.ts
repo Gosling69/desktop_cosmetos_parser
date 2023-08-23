@@ -2,10 +2,16 @@
 import { models } from "../../wailsjs/go/models";
 
 export enum ItemActionTypes {
+    ADD_ITEMS_FOR_SITE = "ADD_ITEMS_FOR_SITE",
     TOGGLE_HIDE_ITEM = "TOGGLE_HIDE_ITEM",
     FETCH_ITEMS = "FETCH_ITEMS",
     FETCH_ITEMS_SUCCESS = "FETCH_ITEMS_SUCCESS",
     FETCH_ITEMS_ERROR = "FETCH_ITEMS_ERROR",
+}
+
+interface addItemsForSite {
+    type : ItemActionTypes.ADD_ITEMS_FOR_SITE
+    siteName : string
 }
 
 interface toggleHideItem {
@@ -32,10 +38,24 @@ interface fetchItemsErrorAction {
 }
 
 
-export interface ItemState  {
+interface Items {
     loading : boolean,
     error : string,
     data : models.Item[]
 }
 
-export type ItemAction = toggleHideItem | fetchItemsAction | fetchItemsSuccessAction | fetchItemsErrorAction
+export const newItems = () : Items => {
+    return {
+        loading : false,
+        error : "",
+        data : []
+    }
+}
+
+
+export interface ItemState  {
+    [key : string] : Items
+}
+   
+
+export type ItemAction = toggleHideItem | fetchItemsAction | fetchItemsSuccessAction | fetchItemsErrorAction | addItemsForSite

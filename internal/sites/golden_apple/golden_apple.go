@@ -2,9 +2,8 @@ package goldenapple
 
 import (
 	structs "appleparser/internal/concurrency_structs"
-	"appleparser/internal/data_utils"
-	"appleparser/internal/misc"
 	"appleparser/internal/models"
+	"appleparser/internal/utils"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -58,7 +57,7 @@ func CreateApple() models.Site {
 func (s *goldenApple) CalculateNumItems(query string) (int, error) {
 	endpoint := s.BaseUrl + url.QueryEscape(query)
 	log.Println(endpoint)
-	response, err := misc.GetRequest(endpoint)
+	response, err := utils.GetRequest(endpoint)
 	if err != nil {
 		return 0, err
 	}
@@ -93,7 +92,7 @@ func (s *goldenApple) ExtractUrls(query string, numItems int) ([]*models.Item, e
 			defer wg.Done()
 			defer sem.Release(p == num_pages || num_pages <= s.MaxRequests)
 			new_url := endpoint + fmt.Sprintf("&%v=%d", s.PageWord, p)
-			response, err := misc.GetRequest(new_url)
+			response, err := utils.GetRequest(new_url)
 			if err != nil {
 				log.Println(err)
 				return
@@ -170,7 +169,7 @@ func (s *goldenApple) traverseItemList(start *goquery.Selection) []*models.Item 
 }
 
 func (s *goldenApple) extractComponents(url string) ([]string, error) {
-	response, err := misc.GetRequest(url)
+	response, err := utils.GetRequest(url)
 	if err != nil {
 		log.Println(err)
 		return nil, errors.New("failed to get item")
@@ -194,7 +193,7 @@ func (s *goldenApple) extractComponents(url string) ([]string, error) {
 			stringOfContents = res
 		}
 	}
-	words, err := data_utils.SplitContentsString(stringOfContents)
+	words, err := utils.SplitContentsString(stringOfContents)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't split string")
 	}
@@ -215,7 +214,7 @@ func findContentsInSEO(doc *goquery.Document) (string, error) {
 		}
 	})
 
-	script_content = data_utils.EnquoteScriptContent(script_content)
+	script_content = utils.EnquoteScriptContent(script_content)
 	startIndex := strings.Index(script_content, contentsStartWord)
 	if startIndex == -1 {
 		return "", fmt.Errorf("components not found")

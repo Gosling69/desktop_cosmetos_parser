@@ -2,6 +2,12 @@ import { Dispatch } from "@reduxjs/toolkit"
 import { ItemActionTypes, ItemAction } from "../../types/itemsTypes"
 import { GetItems } from "../../../wailsjs/go/main/App"
 
+export const addItemsForSite = (siteName : string) => {
+    return (dispatch : Dispatch<ItemAction>) => {
+        dispatch({type: ItemActionTypes.ADD_ITEMS_FOR_SITE, siteName})
+    }
+}
+
 
 export const toggleHideItem = (url : string, siteName : string) => {
     return (dispatch : Dispatch<ItemAction>) => {

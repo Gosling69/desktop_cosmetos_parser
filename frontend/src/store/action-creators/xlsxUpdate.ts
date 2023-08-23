@@ -3,6 +3,12 @@ import {XlsxAction, XlsxActionTypes} from "../../types/xlsxUpdateTypes"
 import { Dispatch } from "@reduxjs/toolkit"
 import { models } from "../../../wailsjs/go/models"
 
+export const addXlsxForSite = (siteName : string) => {
+    return (dispatch : Dispatch<XlsxAction>) => {
+        dispatch({type : XlsxActionTypes.ADD_XLSX_FOR_SITE, siteName})
+    }
+}
+
 
 export const setXlsxLoading = (siteName : string, total : number) => {
     return (dispatch : Dispatch<XlsxAction>) => {

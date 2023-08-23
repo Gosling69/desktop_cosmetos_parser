@@ -1,8 +1,8 @@
 package work_with_xlsx
 
 import (
-	"appleparser/internal/data_utils"
 	"appleparser/internal/models"
+	"appleparser/internal/utils"
 
 	"fmt"
 	"log"
@@ -15,13 +15,13 @@ var sheetName = "Sheet1"
 var verticalOffset = 3
 var cellColor = []string{"267041"}
 
-// string(rune(65+i))
 // add count of encountered components for each row
 // fix first column for easier navigation
 // fix first row for easier navigation
+
 func Export_to_xlsx(items []*models.Item, filename string) error {
 
-	all_components := data_utils.Get_Components(items)
+	all_components := utils.Get_Components(items)
 
 	f := excelize.NewFile()
 	style, err := f.NewStyle(&excelize.Style{
@@ -60,7 +60,7 @@ func Export_to_xlsx(items []*models.Item, filename string) error {
 					break
 				}
 			}
-			if _, ok := data_utils.Includes[string](comp, target_comps); ok {
+			if _, ok := utils.Includes[string](comp, target_comps); ok {
 				cell_name := fmt.Sprintf("%s%d", string(rune(65+index+1)), vertical_coord)
 				f.SetCellStyle(sheetName, cell_name, cell_name, style)
 			}
