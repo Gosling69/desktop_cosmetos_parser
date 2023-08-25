@@ -2,7 +2,10 @@ package goldenapple
 
 import (
 	"appleparser/internal/models"
-	"log"
+	"appleparser/internal/utils"
+	"fmt"
+	"sort"
+	"sync"
 	"testing"
 )
 
@@ -27,7 +30,7 @@ var testItems = []*models.Item{
 		Url:  "https://goldapple.ru/11910-19000041617-pro-icon-look-satin-face-powder",
 	},
 }
-var test_query = "пудра"
+var test_query = "масло для волос"
 
 // func TestGetData(t *testing.T) {
 // 	response, err := http.Get("https://goldapple.ru/19000019730-for-me-223-bring-me-to-the-beach")
@@ -101,21 +104,44 @@ var test_query = "пудра"
 // 		t.Fatal(err)
 // 	}
 
-// 	for _, item := range items {
-// 		log.Printf("%v - %v\n %v\n", item.Brand, item.Name, item.Description)
-// 	}
-// }
+//		for _, item := range items {
+//			log.Printf("%v - %v\n %v\n", item.Brand, item.Name, item.Description)
+//		}
+//	}
+type safeCount struct {
+	mx sync.Mutex
+	v  int
+}
 
+func (s *safeCount) Increment() {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	s.v++
+}
 func TestParseLinks(t *testing.T) {
 
-	// items, _ := apple.ExtractUrls(test_query, 20)
-	result, _ := apple.ParseLinks(testItems, func() {})
+	items, _ := apple.ExtractUrls(test_query, 20)
+	// result, _ := apple.ParseLinks(testItems, func() {})
 	// for _, fail := range failed {
 	// 	log.Println(fail.Url)
 	// }
-
-	for _, item := range result {
-		log.Printf("%v - %v\n", item.Url, item.Components)
+	callback := func(total int) func() {
+		counter := &safeCount{}
+		return func() {
+			counter.Increment()
+			fmt.Printf("%v/%v\r", counter.v, total)
+		}
 	}
+
+	result, _ := apple.ParseLinks(items, callback(len(items)))
+	components := utils.GetComponents(result)
+	sort.Strings(components)
+	for index, comp := range components {
+		fmt.Printf("%v - %v\n", comp, index)
+	}
+
+	// for _, item := range result {
+	// 	log.Printf("%v - %v\n", item.Url, item.Components)
+	// }
 
 }

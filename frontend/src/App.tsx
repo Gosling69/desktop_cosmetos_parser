@@ -38,14 +38,11 @@ const icons = [<PieChartOutlined />, <DesktopOutlined />, <ContainerOutlined />]
 
 
 // REDO make Dashboard Component fit all width of remained space
-// REDO optimize sites so it wont rerender every time state changes
-// add compare function to useTypedSelector
-
 
 function App() {
  
     const {addSite} = useActions()
-    const sites = useTypedSelector(state => state.sites, (newState, oldState ) : boolean => newState.length === oldState.length)
+    const sites = useTypedSelector(state => state.sites, (newState, oldState) : boolean => newState.length === oldState.length)
     const [currentSite, setCurrentSite] = useState("")
     const [collapsed, setCollapsed] = useState(false);
 
@@ -89,7 +86,7 @@ function App() {
                     }
                 />
                 </Col>
-            <Col span={20} >
+            <Col  span={20} >
                 <SiteDashboard siteName={currentSite}/>
             </Col>
         </Row>

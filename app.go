@@ -77,7 +77,7 @@ func (a *App) ParseLinksAndSaveToXlsx(items []*models.Item, siteName, filename s
 		runtime.EventsEmit(a.ctx, emitXlsxUpdate, siteName)
 	}
 	data, failed := targetSite.ParseLinks(items, progressCallback)
-	err := work_with_xlsx.Export_to_xlsx(data, filename)
+	err := work_with_xlsx.ExportToXlsx(data, filename)
 	if err != nil {
 		return nil, err
 	}

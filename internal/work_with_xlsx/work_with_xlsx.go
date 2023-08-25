@@ -3,6 +3,7 @@ package work_with_xlsx
 import (
 	"appleparser/internal/models"
 	"appleparser/internal/utils"
+	"sort"
 
 	"fmt"
 	"log"
@@ -16,12 +17,11 @@ var verticalOffset = 3
 var cellColor = []string{"267041"}
 
 // add count of encountered components for each row
-// fix first column for easier navigation
-// fix first row for easier navigation
 
-func Export_to_xlsx(items []*models.Item, filename string) error {
+func ExportToXlsx(items []*models.Item, filename string) error {
 
-	all_components := utils.Get_Components(items)
+	all_components := utils.GetComponents(items)
+	sort.Strings(all_components)
 
 	f := excelize.NewFile()
 	style, err := f.NewStyle(&excelize.Style{
@@ -41,9 +41,9 @@ func Export_to_xlsx(items []*models.Item, filename string) error {
 	i := 1
 	for _, item := range items {
 		cell_name := fmt.Sprintf("%s%d", string(rune(65+i)), 1)
-		f.SetCellValue(sheetName, cell_name, item.Url)
+		f.SetCellValue(sheetName, cell_name, fmt.Sprintf("%v %v", item.Brand, item.Name))
 		cell_name = fmt.Sprintf("%s%d", string(rune(65+i)), 2)
-		f.SetCellValue(sheetName, cell_name, item.Name)
+		f.SetCellValue(sheetName, cell_name, item.Url)
 		urls = append(urls, item.Url)
 		i++
 	}
@@ -86,9 +86,23 @@ func Export_to_xlsx(items []*models.Item, filename string) error {
 		}
 		f.SetColWidth(sheetName, name, name, float64(largestWidth))
 	}
+	err = f.SetPanes("Sheet1", &excelize.Panes{
+		Freeze:      true,
+		XSplit:      1,
+		YSplit:      1,
+		TopLeftCell: "B2",
+		ActivePane:  "bottomRight",
+		Panes: []excelize.PaneOptions{
+			{Pane: "bottomRight"},
+		},
+	})
+	if err != nil {
+		return err
+	}
 
 	if err := f.SaveAs(fmt.Sprintf("%v.xlsx", filename)); err != nil {
 		log.Fatal(err)
+		return err
 	}
 	return nil
 }

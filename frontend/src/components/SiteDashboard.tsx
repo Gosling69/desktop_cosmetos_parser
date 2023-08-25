@@ -5,7 +5,6 @@ import { models } from "../../wailsjs/go/models"
 import React, { useEffect, useState } from "react"
 import {EventsOn} from "../../wailsjs/runtime/runtime"
 import { Row, Col, List, Avatar, Checkbox, Space, Input, InputNumber, Button } from "antd"
-import { CheckboxChangeEvent } from "antd/es/checkbox"
 
 
 //add popup message showing errors if they happen
@@ -70,6 +69,8 @@ const SearchInput = ({siteName} : dashProps) => {
                 <Button type="primary" onClick={clearInput}>Clear</Button>
                 <Input.Search  value={query} onChange={onInputChange} placeholder={defaultInfo} onSearch={getNumPages} style={{ width: 200 }} />
             </Space.Compact>
+            {/* {info} */}
+            {error}
             {numItems ? 
                 <Space.Compact style={{ width: '100%', marginTop:"16px" }}>
                     <InputNumber max={numItems} min={1}  onChange={(e) => setNumItemsToFetch(e!)} value={numItemsToFetch}  disabled={itemsLoading}/>
@@ -100,6 +101,7 @@ const Item = ({item, siteName} : itemProps) => {
                 avatar={<Avatar size="large" shape="square" src={item.ImageLink} />}
                 title={<a href={item.Url}>{`${item.Brand} ${item.Name}`}</a>}
                 description={item.Description}
+
             />
         </List.Item>
     )
@@ -135,7 +137,6 @@ const ItemsList = ({siteName} : dashProps) => {
 }
 
 const XlsxComponent = ({siteName} : dashProps) => {
-    // const {items, xlsxStatus, name} = site
     const {data} = useTypedSelector(state => state.items[siteName])
     const {loading, completed, total, error} = useTypedSelector(state => state.xlsxStatus[siteName])
     const [fileName, setFilename] = useState("test")
@@ -183,6 +184,7 @@ const XlsxComponent = ({siteName} : dashProps) => {
 
 
 const SiteDashboard = ({siteName} : dashProps) => {
+    // fix xlsx input position
     const site = useTypedSelector(state => state.sites.find(site => site.name === siteName))
     if (!site) {
         return <h1>Site not found, Error occured</h1>

@@ -2,17 +2,23 @@ package work_with_xlsx
 
 import (
 	"appleparser/internal/models"
+	goldenapple "appleparser/internal/sites/golden_apple"
+
+	"testing"
 )
 
 var test_items = []*models.Item{
 	{
-		Url: "https://goldapple.ru/10515-19000164636-cream-bronzer",
+		Url:  "https://goldapple.ru/10515-19000164636-cream-bronzer",
+		Name: "Cream Bronzer",
 	},
 	{
-		Url: "https://goldapple.ru/19000039123-fixing-natural-spray",
+		Url:  "https://goldapple.ru/19000039123-fixing-natural-spray",
+		Name: "Natural Spray",
 	},
 	{
-		Url: "https://goldapple.ru/3571300002-get-big-lashes-volume-boost-mascara",
+		Url:  "https://goldapple.ru/3571300002-get-big-lashes-volume-boost-mascara",
+		Name: "Mascara",
 	},
 }
 
@@ -32,16 +38,16 @@ var test_items = []*models.Item{
 //		// "8",
 //		// "9",
 //	}
-// var apple = goldenapple.CreateApple(variables.AppleProps)
+var apple = goldenapple.CreateApple()
 
-// func Test_Single_Parse(t *testing.T) {
-// 	data, _ := apple.ParseLinks(test_items)
-// 	for _, item := range data {
-// 		log.Printf("%v - %v\n%v\n", item.Name, item.Url, item.Components)
-// 	}
+func Test_Single_Parse(t *testing.T) {
+	data, _ := apple.ParseLinks(test_items, func() {})
+	// for _, item := range data {
+	// 	log.Printf("%v - %v\n%v\n", item.Name, item.Url, item.Components)
+	// }
 
-// 	err := Export_to_xlsx(data, "testA")
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// }
+	err := ExportToXlsx(data, "testA")
+	if err != nil {
+		t.Fatal(err)
+	}
+}

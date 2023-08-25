@@ -18,7 +18,10 @@ export const queryReducer = (state = initialState, action : QueryAction) : Query
                 }
             }
         case QueryActionTypes.CLEAR_QUERY:
-            return initialState
+            return {
+                ...state, 
+                [action.siteName] : newQuery()
+            }
         case QueryActionTypes.FETCH_NUM_PAGES:
             return {
                 ...state,

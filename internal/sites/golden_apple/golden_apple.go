@@ -191,6 +191,7 @@ func (s *goldenApple) extractComponents(url string) ([]string, error) {
 		res, err := function(doc)
 		if err == nil {
 			stringOfContents = res
+			break
 		}
 	}
 	words, err := utils.SplitContentsString(stringOfContents)

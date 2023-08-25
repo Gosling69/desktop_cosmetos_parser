@@ -16,6 +16,11 @@ import (
 
 var unquotedKeyWordsRegexp = regexp.MustCompile(`([a-zA-Z]+):`)
 var unquotedValuesWordsRegexp = regexp.MustCompile(`:([a-zA-Z]+)`)
+var nonAlphanumericRegex = regexp.MustCompile(`[^/\%\-\s,a-zA-Z0-9]+`)
+
+var bracketsRegex = regexp.MustCompile(`\((.*?)\)`)
+var extraSpaceRegex = regexp.MustCompile(`\s+`)
+
 var replaceKeysWithQuotes = []byte(`"$1":`)
 var replaceValuesWithQuotes = []byte(`:"$1"`)
 
@@ -34,11 +39,11 @@ func EnquoteScriptContent(scriptcontent string) string {
 	return scriptcontent
 }
 
-func Get_Components(data []*models.Item) []string {
+func GetComponents(data []*models.Item) []string {
 	compSet := make(map[string]bool)
 	for _, item := range data {
 		for _, comp := range item.Components {
-			if len(comp) > 0 {
+			if len(strings.TrimSpace(comp)) > 1 && !regexp.MustCompile(`^[0-9\%]+$`).MatchString(strings.TrimSpace(comp)) {
 				compSet[comp] = true
 			}
 		}
@@ -52,15 +57,33 @@ func Get_Components(data []*models.Item) []string {
 
 func SplitContentsString(stringOfContents string) ([]string, error) {
 	words := strings.Split(stringOfContents, ", ")
-	for index, word := range words {
-		words[index], _ = strconv.Unquote(`"` + strings.ToLower(word) + `"`)
-		word = words[index]
-		if strings.Contains(word, "may contain") {
+	for index := range words {
+		words[index], _ = strconv.Unquote(`"` + strings.ToLower(words[index]) + `"`)
+		words[index] = strings.ReplaceAll(words[index], "[", "(")
+		words[index] = strings.ReplaceAll(words[index], "]", ")")
+		if splitted := strings.Split(words[index], ":"); len(splitted) > 1 {
+			words[index] = splitted[1]
+		} else {
+			words[index] = splitted[0]
+		}
+		words[index] = strings.ReplaceAll(words[index], ".", "")
+		test := bracketsRegex.FindAllString(words[index], -1)
+		for _, match := range test {
+			words[index] = strings.ReplaceAll(words[index], match, "")
+		}
+		words[index] = strings.ReplaceAll(words[index], "/", " / ")
+		words[index] = nonAlphanumericRegex.ReplaceAllString(words[index], "")
+		words[index] = extraSpaceRegex.ReplaceAllString(words[index], " ")
+		words[index] = strings.TrimSpace(words[index])
+		if strings.Contains(words[index], "may contain") {
+			words = words[:index]
+			break
+		}
+		if strings.Contains(words[index], "может содержать") {
 			words = words[:index]
 			break
 		}
 	}
-	words[len(words)-1] = strings.ReplaceAll(words[len(words)-1], ".", "")
 	return words, nil
 
 }
@@ -89,7 +112,7 @@ func GetRequest(url string) (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
-func Save_failed_html(url string, data []byte) {
+func SaveFailedHtml(url string, data []byte) {
 	splitVal := strings.Split(url, "/")
 	filename := "test"
 	if len(splitVal) > 0 {
